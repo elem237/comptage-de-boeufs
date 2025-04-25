@@ -1,0 +1,77 @@
+/* identification-page styles */
+.identification-page {
+    background-color: #F4F9FE;
+    min-height: 100vh;
+    color: #020710;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: background-color 0.4s ease;
+  }
+  
+  .content {
+    text-align: center;
+    padding: 40px;
+  }
+  
+  .camera-select {
+    margin: 20px 0;
+    font-size: 16px;
+  }
+  
+  .camera-select select {
+    margin-left: 10px;
+    padding: 5px 10px;
+    font-size: 16px;
+  }
+  
+  .button-container {
+    margin-bottom: 30px;
+    transition: all 0.3s ease-in-out;
+  }
+  
+  .start-btn, .stop-btn {
+    padding: 10px 25px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+  }
+  
+  .start-btn {
+    background-color: #35AAFA;
+    color: white;
+  }
+  
+  .stop-btn {
+    background-color: #BEFF99;
+    color: #020710;
+  }
+  
+  .start-btn:hover {
+    background-color: #1e90e8;
+  }
+  
+  .stop-btn:hover {
+    background-color: #aaff7d;
+  }
+  
+  .video-section {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.7s ease;
+  }
+  
+  .video-section.show {
+    opacity: 1;
+    max-height: 1000px; /* suffisamment grand pour le contenu */
+    margin-top: 20px;
+  }
+  
+  .video-section img {
+    width: 100%;
+    max-width: 800px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+  }
+  

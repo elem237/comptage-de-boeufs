@@ -1,0 +1,68 @@
+/* IdentificationPage.css */
+
+.identification-page {
+  background-color: #FFA;
+  min-height: 100vh;
+  color: black;
+}
+
+.content {
+  padding: 20px 40px;
+  font-family: sans-serif;
+}
+
+h2 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+}
+
+.camera-select {
+  margin: 20px 0;
+  font-size: 1rem;
+}
+
+.camera-select select {
+  margin-left: 10px;
+  padding: 6px 12px;
+  font-size: 1rem;
+}
+
+.button-container {
+  margin: 20px 0;
+}
+
+button {
+  background-color: #F00;
+  color: black;
+  font-weight: bold;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+button:hover {
+  transform: scale(1.05);
+}
+
+.video-section {
+  margin-top: 30px;
+}
+
+.hide {
+  display: none;
+}
+
+.show {
+  display: block;
+}
+.total-count {
+  font-size: 24px;
+  font-weight: bold;
+  margin-top: 20px;
+  color: black;
+}
+.count {
+  transition: all 0.5s ease-in-out;
+}

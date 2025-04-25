@@ -1,0 +1,9 @@
+flask
+flask-cors
+pymongo
+torch
+opencv-python-headless
+gitpython>=3.1.30
+requests
+pandas
+ultralytics

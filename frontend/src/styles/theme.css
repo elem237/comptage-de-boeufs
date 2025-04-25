@@ -1,0 +1,16 @@
+:root {
+    --text-dark: #020710;
+    --text-secondary: #081120;
+    --accent-blue: #35AAFA;
+    --accent-green: #BEFF99;
+    --background: #F4F9FE;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--background);
+    font-family: 'Segoe UI', sans-serif;
+    color: var(--text-dark);
+  }
+  

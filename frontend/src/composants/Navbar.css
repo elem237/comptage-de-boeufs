@@ -1,0 +1,113 @@
+/* Barre de navigation */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #FFA;
+  color: #F00;
+  padding: 15px 30px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Logo de la navbar */
+.navbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.navbar-logo h1 {
+  font-size: 1.75rem;
+  color: #F00;
+  font-family: 'Arial', sans-serif;
+  font-weight: bold;
+}
+
+/* Animation sur le favicon */
+.favicon-animated {
+  width: 40px;
+  height: 40px;
+  animation: pulse 2s infinite;
+  border-radius: 50%;
+  background-color: #FFA;
+  padding: 5px;
+  box-shadow: 0 0 10px #F00;
+}
+
+/* Animation du favicon */
+@keyframes pulse {
+  0% { transform: scale(1); box-shadow: 0 0 8px #F00; }
+  50% { transform: scale(1.1); box-shadow: 0 0 15px #F00; }
+  100% { transform: scale(1); box-shadow: 0 0 8px #F00; }
+}
+
+/* Liens du menu */
+.navbar-links {
+  list-style: none;
+  display: flex;
+  gap: 30px;
+  margin: 0;
+  padding: 0;
+}
+
+.navbar-links .nav-button {
+  color: #F00;
+  text-decoration: none;
+  padding: 10px 25px;
+  background-color: transparent;
+  border: 2px solid #F00;
+  border-radius: 25px;
+  font-weight: bold;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease-in-out;
+  position: relative;
+}
+
+/* Effet de survol */
+.navbar-links .nav-button:hover {
+  background-color: #F00;
+  color: #FFF;
+  transform: translateY(-4px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+}
+
+/* Animation de soulignement sur le survol */
+.navbar-links .nav-button:hover::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50%;
+  height: 3px;
+  background-color: #FFF;
+  transition: width 0.3s ease-in-out;
+}
+
+/* Bouton actif (page active) */
+.navbar-links .nav-button.active {
+  background-color: #F00;
+  color: #FFF;
+  font-weight: bold;
+  transform: translateY(-4px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+}
+
+/* Effet de clic */
+.navbar-links .nav-button:active {
+  transform: translateY(1px);
+}
+
+/* Ajout d'un effet sur l'ensemble de la navbar */
+.navbar {
+  transition: background-color 0.3s ease-in-out;
+}
+
+.navbar:hover {
+  background-color: #FFD700; /* Changer la couleur de fond au survol */
+}
