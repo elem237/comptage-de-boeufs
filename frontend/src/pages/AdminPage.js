@@ -1,6 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Bar } from 'react-chartjs-2';
 import Navbar from '../composants/Navbar';
+import DashboardTab from './tabs/DashboardTab';
+import CamerasTab from './tabs/CamerasTab';
+import StatsTab from './tabs/StatsTab';
+import TicketTab from './tabs/TicketTab';
+
+import {
+  MdDashboard,
+  MdBarChart,
+  MdVideocam
+} from 'react-icons/md';
+
+import { RiTicket2Line } from 'react-icons/ri'; 
+
+
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -10,107 +23,75 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
+import './AdminPage.css';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
-
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const AdminPage = () => {
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [chartData, setChartData] = useState(null);
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/boeufs/hebdomadaire")
-      .then(res => res.json())
-      .then(data => {
-        const labels = Object.keys(data);
-        const values = Object.values(data);
-
-        setChartData({
-          labels,
-          datasets: [
-            {
+    if (activeTab === 'dashboard' || activeTab === 'stats') {
+      fetch("http://localhost:5000/api/boeufs/hebdomadaire")
+        .then(res => res.json())
+        .then(data => {
+          const labels = Object.keys(data);
+          const values = Object.values(data);
+          setChartData({
+            labels,
+            datasets: [{
               label: 'Bœufs détectés',
               data: values,
-              backgroundColor: labels.map((_, i) => i % 2 === 0 ? '#35AAFA' : '#BEFF99'),
-              borderColor: '#F00',
+              backgroundColor: '#BEFF99',
+              borderColor: '#35AAFA',
               borderWidth: 2,
-            },
-          ],
+            }],
+          });
         });
-      })
-      .catch(err => console.error("Erreur graphique :", err));
 
-    fetch("http://localhost:5000/api/boeufs/stats")
-      .then(res => res.json())
-      .then(data => setStats(data))
-      .catch(err => console.error("Erreur stats globales :", err));
-  }, []);
+      fetch("http://localhost:5000/api/boeufs/stats")
+        .then(res => res.json())
+        .then(data => setStats(data));
+    }
+  }, [activeTab]);
+
+  const renderTab = () => {
+    switch (activeTab) {
+      case 'dashboard': return <DashboardTab />;
+      case 'cameras': return <CamerasTab />;
+      case 'stats': return <StatsTab chartData={chartData} stats={stats} />;
+      case 'ticket': return <TicketTab />;
+      default: return null;
+    }
+  };
 
   return (
-    <>
+    <div className="admin-layout">
       <Navbar />
-      <div style={{ backgroundColor: '#FFA', minHeight: '100vh', padding: '40px', color: '#000' }}>
-        <h1 style={{ textAlign: 'center', marginBottom: '30px' }}>📈 Tableau de bord des détections</h1>
-
-        {stats && (
-          <div style={{
-            backgroundColor: '#FFE',
-            padding: '20px',
-            marginBottom: '30px',
-            borderRadius: '10px',
-            boxShadow: '0 0 10px rgba(0,0,0,0.1)'
-          }}>
-            <h3>📊 Statistiques générales</h3>
-            <p><strong>Total hebdomadaire :</strong> {stats.total_hebdo} 🐄</p>
-            <p><strong>Moyenne par jour :</strong> {stats.moyenne_journaliere} 🐄</p>
-            <p><strong>Jour max :</strong> {stats.jour_max} ({stats.valeur_max} 🐄)</p>
-            <p><strong>Jour min :</strong> {stats.jour_min} ({stats.valeur_min} 🐄)</p>
-            <p><strong>Dernière détection :</strong> {stats.derniere_detection}</p>
-            <p><strong>Détections totales enregistrées :</strong> {stats.nombre_detections}</p>
-          </div>
-        )}
-
-        {chartData && (
-          <div style={{
-            backgroundColor: '#FFF',
-            padding: '20px',
-            borderRadius: '10px',
-            boxShadow: '0 0 10px rgba(0,0,0,0.1)'
-          }}>
-            <Bar data={chartData} options={{
-              responsive: true,
-              plugins: {
-                legend: { display: false },
-                title: {
-                  display: true,
-                  text: 'Nombre de bœufs détectés par jour',
-                  color: '#000',
-                  font: { size: 18 }
-                }
-              },
-              scales: {
-                x: {
-                  ticks: { color: '#000' },
-                  grid: { color: '#ddd' }
-                },
-                y: {
-                  beginAtZero: true,
-                  ticks: { color: '#000' },
-                  grid: { color: '#ddd' }
-                }
-              }
-            }} />
-          </div>
-        )}
+      <div className="admin-content">
+        <aside className="sidebar">
+          <ul>
+            <li className={activeTab === 'dashboard' ? 'active' : ''} onClick={() => setActiveTab('dashboard')}>
+              <MdDashboard className="icon" /> Tableau de bord
+            </li>
+            <li className={activeTab === 'stats' ? 'active' : ''} onClick={() => setActiveTab('stats')}>
+              <MdBarChart className="icon" /> Statistiques
+            </li>
+            <li className={activeTab === 'cameras' ? 'active' : ''} onClick={() => setActiveTab('cameras')}>
+              <MdVideocam className="icon" /> Caméras
+            </li>
+            <li className={activeTab === 'ticket' ? 'active' : ''} onClick={() => setActiveTab('ticket')}>
+              <RiTicket2Line className="icon" /> Bon d'Abattage
+            </li>
+          </ul>
+        </aside>
+        <main className="main-view">
+          {renderTab()}
+        </main>
       </div>
-    </>
+    </div>
   );
 };
 

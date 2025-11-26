@@ -1,30 +1,27 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import AdminPage from './pages/AdminPage';
-import IdentificationPage from './pages/IdentificationPage';
 import Login from './pages/Login';
-import Navbar from './composants/Navbar';
-
-const PrivateRoute = ({ children }) => {
-  const isAuthenticated = localStorage.getItem('auth') === 'true';
-  return isAuthenticated ? children : <Navigate to="/login" />;
-};
+import AdminPage from './pages/AdminPage';
+import UserPage from './pages/UserPage';
+import IdentificationPage from './pages/IdentificationPage';
+import TicketTab from './pages/tabs/TicketTab';
+import DashboardTab from './pages/tabs/DashboardTab';
 
 function App() {
-  const isAuthenticated = localStorage.getItem('auth') === 'true'; // Définir ici
-
   return (
     <Router>
       <Routes>
-       
-        <Route path="/" element={isAuthenticated ? <AdminPage /> : <Login />} />
-
-        
+        <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={<Login />} />
 
-        
-        <Route path="/admin" element={<PrivateRoute><AdminPage /></PrivateRoute>} />
-        <Route path="/identification" element={<PrivateRoute><IdentificationPage /></PrivateRoute>} />
+        <Route path="/admin" element={<AdminPage />}>
+          <Route path="dashboard" element={<DashboardTab />} />
+          <Route path="identification" element={<IdentificationPage />} />
+        </Route>
+
+        <Route path="/user" element={<UserPage />}>
+          <Route path="identification" element={<IdentificationPage />} />
+          <Route path="tickets" element={<TicketTab />} />
+        </Route>
       </Routes>
     </Router>
   );

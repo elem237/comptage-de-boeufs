@@ -1,98 +1,118 @@
-body {
-    margin: 0;
-    padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-    min-height: 100vh;
-    background: linear-gradient(to right, #C9D6FF, #E2E2E2);
-  }
-  
-  
-  .login-container {
-    display: flex;
+.login-page {
+  display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh; 
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  }
-  
-  .login-box {
-    background-color: rgba(255, 250, 170, 0.9);
-    padding: 40px;
-    border-radius: 12px;
-    box-shadow: 0 0 15px #F00;
-    text-align: center;
-    width: 90%;
-    max-width: 400px;
-    transition: transform 0.3s ease;
-  }
-  
-  .login-box:hover {
-    transform: translateY(-5px);
-  }
-  
-  .login-title {
-    color: #F00;
-    font-size: 32px;
-    margin-bottom: 30px;
-    font-weight: bold;
-  }
-  
-  .login-form input {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 20px;
-    border: none;
-    border-radius: 8px;
-    background-color: #fff0cc;
-    color: #020710;
-    font-size: 16px;
-    transition: all 0.3s ease-in-out;
-  }
-  
-  .login-form input::placeholder {
-    color: #999;
-  }
-  
-  .login-form input:focus {
-    outline: none;
-    background-color: #fff5dd;
-    border: 1px solid #F00;
-    box-shadow: 0 0 5px #F00;
-  }
-  
-  .login-button {
-    width: 100%;
-    padding: 12px;
-    background-color: #F00;
-    color: #FFFAAA;
-    border: none;
-    border-radius: 8px;
-    font-size: 18px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: all 0.3s ease;
-  }
-  
-  .login-button:hover {
-    background-color: #BEFF99;
-    color: #081120;
-  }
-  .welcome-text {
-    margin-bottom: 20px;
-  }
-  
-  .welcome-text h1 {
-    font-size: 24px;
-    color: #F00;
-    margin-bottom: 10px;
-  }
-  
-  .welcome-text p {
-    font-size: 16px;
-    color: #444;
-  }
-  
+  height: 100vh;
+  background: #eef2f7;
+}
+
+.login-box {
+  background: #fff;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 400px;
+}
+
+.login-box h2 {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.login-box label {
+  display: block;
+  margin-top: 15px;
+  font-weight: bold;
+}
+
+.login-box input, .login-box select {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.login-button {
+  margin-top: 20px;
+  width: 100%;
+  padding: 12px;
+  background: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.login-button:hover {
+  background: #1976d2;
+}
+.logo-container {
+  text-align: center;
+  margin-bottom: 20px;
+  animation: pulse 3s ease-in-out infinite;
+}
+
+.animated-logo {
+  width: 120px;
+  height: auto;
+  transition: transform 0.3s ease;
+  filter: drop-shadow(0 0 10px gold);
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.9; }
+}
+.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f4f6f8;
+  min-height: 100vh;
+}
+
+.login-box {
+  background-color: white;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.logo-top {
+  margin-bottom: 20px;
+}
+
+.logo-image {
+  width: 80px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.1));
+  border-radius: 8px;
+}
+.login-form .form-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.login-form .form-group label {
+  width: 40%;
+  text-align: right;
+  margin-right: 10px;
+}
+
+.login-form .form-group input,
+.login-form .form-group select {
+  width: 60%;
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}

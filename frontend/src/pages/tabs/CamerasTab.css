@@ -1,0 +1,101 @@
+.camera-tab-container {
+    padding: 2rem;
+    color: #333;
+  }
+  
+  .camera-section {
+    margin-bottom: 2rem;
+  }
+  
+  .camera-section h3 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    color: #222;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 5px;
+  }
+  
+  .camera-list {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .camera-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+    margin-bottom: 0.5rem;
+    padding: 0.6rem 1rem;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  
+  .ip-add-form {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  
+  .ip-add-form input {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  .add-btn, .delete-btn {
+    background: #04f110;
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: background 0.2s ease;
+  }
+  
+  .delete-btn {
+    background: #e74c3c;
+  }
+  
+  .add-btn:hover {
+    background: #04f110;
+  }
+  
+  .delete-btn:hover {
+    background: #c0392b;
+  }
+  .add-btn, .delete-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 500;
+    background: #35aaff;
+    color: #fff;
+    border: none;
+    padding: 0.45rem 0.9rem;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .add-btn:hover {
+    background: #1e90ff;
+  }
+  
+  .delete-btn {
+    background: #ff4d4f;
+  }
+  
+  .delete-btn:hover {
+    background: #e04141;
+  }
+  
+  .add-btn svg,
+  .delete-btn svg {
+    vertical-align: middle;
+  }
+  

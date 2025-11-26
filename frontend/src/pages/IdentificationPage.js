@@ -1,128 +1,155 @@
 import React, { useState, useEffect } from 'react';
-import Navbar from '../composants/Navbar';
 import VideoStream from '../composants/VideoStream';
 import './IdentificationPage.css';
+import { MdVideocam, MdPlayArrow, MdStop } from 'react-icons/md';
 
 const IdentificationPage = () => {
-  const [cameraIndex, setCameraIndex] = useState(0);
   const [identificationActive, setIdentificationActive] = useState(false);
   const [totalCattleCount, setTotalCattleCount] = useState(0);
-  const [totalPeopleCount, setTotalPeopleCount] = useState(0);
-  const [cameras, setCameras] = useState([]);
-  const [selectedCamera, setSelectedCamera] = useState(0);
+  const [totalHumanCount, setTotalHumanCount] = useState(0);
+  const [availableCameras, setAvailableCameras] = useState([]);
+  const [selectedCamera, setSelectedCamera] = useState(null);
 
-  const handleCameraChange = (e) => {
-    const index = Number(e.target.value);
-    setSelectedCamera(index);
-    setCameraIndex(index);
-  };
-
-  const handleStartIdentification = () => {
-    fetch('http://localhost:5000/start_identification', { method: 'POST' })
-      .then(res => {
-        if (res.ok) {
-          setIdentificationActive(true);
-          alert("Identification des bœufs et des hommes en cours...");
-        } else {
-          alert("Impossible de démarrer l'identification");
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        alert("Erreur réseau lors du démarrage");
-      });
-  };
-
-  const handleStopIdentification = () => {
-    fetch('http://localhost:5000/stop_identification', { method: 'POST' })
-      .then(res => {
-        if (res.ok) {
-          setIdentificationActive(false);
-          alert("Identification arrêtée.");
-        } else {
-          alert("Impossible d'arrêter l'identification");
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        alert("Erreur réseau lors de l'arrêt");
-      });
-  };
-
+  // Charger les caméras au démarrage
   useEffect(() => {
-    fetch('http://localhost:5000/api/cameras')
-      .then(res => res.json())
-      .then(data => {
-        setCameras(data);
-        if (data.length > 0) {
-          setSelectedCamera(data[0]);
-          setCameraIndex(data[0]);
+    const fetchCameras = async () => {
+      try {
+        const resLocal = await fetch('http://localhost:5000/api/cameras');
+        const localCams = await resLocal.json();
+
+        const resWifi = await fetch('http://localhost:5000/api/cameras/wifi');
+        const wifiCams = await resWifi.json();
+
+        const allCams = [
+          ...localCams.map(index => ({
+            label: `Caméra locale #${index}`,
+            type: 'local',
+            value: index.toString()
+          })),
+          ...wifiCams.map((ip, idx) => ({
+            label: `Caméra Wi-Fi #${idx + 1}`,
+            type: 'wifi',
+            value: ip
+          }))
+        ];
+
+        setAvailableCameras(allCams);
+        if (allCams.length > 0) {
+          setSelectedCamera(allCams[0]);
         }
-      })
-      .catch(console.error);
+      } catch (err) {
+        console.error('Erreur lors du chargement des caméras:', err);
+      }
+    };
+
+    fetchCameras();
   }, []);
 
+  // Démarrer l’identification
+  const handleStartIdentification = async () => {
+    if (!selectedCamera) return;
+
+    try {
+      const response = await fetch('http://localhost:5000/start_identification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          camera_id: selectedCamera.value,
+          camera_type: selectedCamera.type
+        })
+      });
+
+      if (response.ok) {
+        setIdentificationActive(true);
+      } else {
+        console.error("Erreur lors du démarrage de l'identification");
+      }
+    } catch (error) {
+      console.error('Erreur réseau:', error);
+    }
+  };
+
+  // Arrêter l’identification
+  const handleStopIdentification = () => {
+    setIdentificationActive(false);
+  };
+
+  // Actualisation en temps réel des comptes
   useEffect(() => {
+    if (!identificationActive) return;
+
     const interval = setInterval(() => {
-      fetch("http://localhost:5000/get_temp_counts")
+      fetch('http://localhost:5000/get_temp_counts')
         .then(res => res.json())
         .then(data => {
-          setTotalCattleCount(data.boeufs);
-          setTotalPeopleCount(data.personnes);
+          setTotalCattleCount(data.boeufs || 0);
+          setTotalHumanCount(data.humains || 0);
         })
         .catch(console.error);
-    }, 2000);
+    }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [identificationActive]);
 
   return (
-    <div style={{ backgroundColor: '#FFA', minHeight: '100vh', color: 'black' }}>
-      <Navbar />
-      <div className="content" style={{ padding: '20px 40px' }}>
-        <h2><span role="img" aria-label="caméra">🎥</span> Identification des Bœufs et des Hommes</h2>
+    <div className="identification-page">
+      <div className="triangles-background">
+        {[...Array(15)].map((_, i) => <div key={i} className="triangle" />)}
+      </div>
 
-        <div className="camera-select" style={{ margin: '20px 0' }}>
-          <label>Sélectionnez une caméra :</label>
+      <div className="content">
+        <h2 className="align-title">
+          <MdVideocam size={36} className="icon" />
+          Identification des Bœufs
+        </h2>
+
+        <div className="camera-select">
+          <label htmlFor="camera-select">Choisir une caméra :</label>
           <select
-            id="cameraSelect"
-            value={selectedCamera}
-            onChange={handleCameraChange}
-            style={{ padding: '10px', fontSize: '16px', borderRadius: '5px' }}
+            id="camera-select"
+            value={selectedCamera ? selectedCamera.value : ''}
+            onChange={e => {
+              const selected = availableCameras.find(c => c.value === e.target.value);
+              setSelectedCamera(selected);
+            }}
           >
-            {cameras.map((camera, index) => (
-              <option key={index} value={camera}>
-                Caméra détectée {camera}
+            {availableCameras.map((cam, index) => (
+              <option key={index} value={cam.value}>
+                {cam.label}
               </option>
             ))}
           </select>
         </div>
 
-        <div className="button-container" style={{ marginBottom: '20px' }}>
+        <div className="button-container">
           {!identificationActive ? (
             <button
-              style={{ backgroundColor: '#F00', color: 'black', fontWeight: 'bold', padding: '10px 20px', border: 'none', borderRadius: '6px' }}
+              className="start-btn"
               onClick={handleStartIdentification}
+              disabled={!selectedCamera}
             >
-              Commencer l'identification
+              <MdPlayArrow size={20} /> Commencer l'identification
             </button>
           ) : (
-            <button
-              style={{ backgroundColor: '#F00', color: 'black', fontWeight: 'bold', padding: '10px 20px', border: 'none', borderRadius: '6px' }}
-              onClick={handleStopIdentification}
-            >
-              Arrêter l'identification
+            <button className="stop-btn" onClick={handleStopIdentification}>
+              <MdStop size={20} /> Arrêter l'identification
             </button>
           )}
         </div>
 
-        <div className={`video-section ${identificationActive ? 'show' : 'hide'}`}>
-          <VideoStream cameraIndex={cameraIndex} />
-        </div>
+        {identificationActive && selectedCamera && (
+          <div className="video-section">
+            <VideoStream
+              key={`${selectedCamera.value}-${selectedCamera.type}`}
+              cameraIndex={selectedCamera.value}
+              isWifi={selectedCamera.type === 'wifi'}
+            />
+          </div>
+        )}
 
-        <div style={{ marginTop: '30px', fontSize: '1.2em', fontWeight: 'bold' }}>
-          <p>Total Bœufs détectés : <span className="animated-count">{totalCattleCount} 🐄</span></p>
-          <p>Total Personnes détectées : <span className="animated-count">{totalPeopleCount} 👤</span></p>
+        <div className="total-count">
+          <div>Total Bœufs détectés : <span className="count">{totalCattleCount} 🐄</span></div>
+          <div>Total Humains détectés : <span className="count">{totalHumanCount} 🧍‍♂️</span></div>
         </div>
       </div>
     </div>

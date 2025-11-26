@@ -1,240 +1,241 @@
-from flask import Flask, Response, request, jsonify, send_from_directory
+import eventlet
+eventlet.monkey_patch()
+
+from flask import Flask, Response, request, jsonify
 from flask_cors import CORS
-from db import collection
+from flask_socketio import SocketIO
+import subprocess
 import cv2
-import os
-import numpy as np
-from datetime import datetime, timedelta
-from threading import Lock
-from pymongo import MongoClient
 import torch
+from datetime import datetime, timedelta
+from collections import defaultdict
+import pymongo
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+socketio = SocketIO(app, cors_allowed_origins="*")
 
-client = MongoClient("mongodb://localhost:27017/")
-db = client['boeuf_db']
-boeuf_collection = db['detections']
+# MongoDB
+client = pymongo.MongoClient("mongodb://localhost:27017/")
+db = client["comptage_boeufs"]
+collection = db["detections"]
+humain_collection = db["humains"]
 
-jours_semaine = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+# YOLOv5
+model = torch.hub.load('ultralytics/yolov5', 'yolov5n', trust_repo=True)
+model.conf = 0.4
+model.classes = [0, 20]  
+# Caméras
+local_cameras = [0, 1]
+wifi_camera_map = {
+    "CAMERA_WIFI_1": "rtsp://192.168.1.100:554/stream",
+    "CAMERA_WIFI_2": "rtsp://192.168.1.101:554/stream"
+}
+connected_wifi_cameras = []
 
-CAPTURE_FOLDER = 'captures'
-os.makedirs(CAPTURE_FOLDER, exist_ok=True)
+# Comptage temporaire
+temp_counts = {"boeufs": 0, "humains": 0}
 
-# Charger YOLOv5n
-model = torch.hub.load('ultralytics/yolov5', 'yolov5n', force_reload=True)
-model.conf = 0.5
-class_names = model.names
 
-total_cattle_detected = 0
-temporary_human_count = 0
-count_lock = Lock()
-identification_active = False  # Flag pour vérifier si l'identification est active
+def notifier_nouvelle_detection(data):
+    data["time"] = datetime.now().strftime("%H:%M:%S")
+    socketio.emit('nouvelle_detection', data)
 
-def detect_objects(frame):
-    global total_cattle_detected, temporary_human_count
-    results = model(frame)
-    detected_cows = 0
-    detected_humans = 0
 
-    for *box, conf, cls in results.xyxy[0]:
-        label = class_names[int(cls)]
-        x1, y1, x2, y2 = map(int, box)
-        if label == 'cow':
-            detected_cows += 1
-            color = (0, 255, 0)
-        elif label == 'person':
-            detected_humans += 1
-            color = (255, 0, 0)
-        else:
-            continue
+def detect_local_cameras(max_index=3):
+    return [i for i in range(max_index) if cv2.VideoCapture(i).read()[0]]
 
-        cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-        cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 
-    if detected_cows > 0:
-        with count_lock:
-            total_cattle_detected += detected_cows
+def scanner_wifi_windows():
+    try:
+        output = subprocess.check_output("netsh wlan show networks", shell=True).decode("utf-8", errors="ignore")
+        return [line.split(":")[1].strip() for line in output.split("\n") if "SSID" in line and "BSSID" not in line]
+    except:
+        return []
 
-    with count_lock:
-        temporary_human_count = detected_humans
 
-    return frame
+def connecter_a_wifi(ssid):
+    try:
+        subprocess.run(f'netsh wlan connect name="{ssid}"', shell=True, check=True)
+        connected_wifi_cameras.append(ssid)
+        return True
+    except:
+        return False
 
-def enregistrer_detection(nombre_boeufs):
-    if nombre_boeufs > 0:
-        maintenant = datetime.now()
-        collection.insert_one({
-            "date": maintenant.strftime("%Y-%m-%d"),
-            "heure": maintenant.strftime("%H:%M:%S"),
-            "nombre_boeufs": nombre_boeufs
-        })
 
-def generate_frames(cam_index):
-    cap = cv2.VideoCapture(cam_index)
-    if not cap.isOpened():
-        raise RuntimeError(f"Impossible d'ouvrir la caméra {cam_index}")
-    
+def run_detection_background(source, camera_name):
+    cap = cv2.VideoCapture(source)
+    if not cap.isOpened(): return
+
     while True:
         success, frame = cap.read()
-        if not success:
-            break
+        if not success: break
 
-        if identification_active:  # On applique la détection uniquement si l'identification est active
-            frame = detect_objects(frame)
-        
-        _, buffer = cv2.imencode('.jpg', frame)
-        frame_bytes = buffer.tobytes()
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+        results = model(frame)
+        detected = results.pandas().xyxy[0]
+
+        nb_boeufs = len(detected[detected['name'] == 'cow'])
+        nb_humains = len(detected[detected['name'] == 'person'])
+
+        temp_counts["boeufs"] = nb_boeufs
+        temp_counts["humains"] = nb_humains
+
+        if nb_boeufs > 0 or nb_humains > 0:
+            data = {
+                "camera": camera_name,
+                "count": nb_boeufs,
+                "humains": nb_humains,
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            collection.insert_one(data)
+            notifier_nouvelle_detection(data)
+
+        eventlet.sleep(1)
+
+    cap.release()
+
+
+
+def gen_frames(source):
+    cap = cv2.VideoCapture(source)
+    if not cap.isOpened(): return
+
+    while True:
+        success, frame = cap.read()
+        if not success: break
+
+        results = model(frame)
+        detected = results.pandas().xyxy[0]
+        boeufs = detected[detected['name'] == 'cow']
+        humains = detected[detected['name'] == 'person']
+
+        temp_counts["boeufs"] = len(boeufs)
+        temp_counts["humains"] = len(humains)
+
+        for _, row in boeufs.iterrows():
+            x1, y1, x2, y2 = map(int, [row['xmin'], row['ymin'], row['xmax'], row['ymax']])
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            cv2.putText(frame, "Boeuf", (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+
+        for _, row in humains.iterrows():
+            x1, y1, x2, y2 = map(int, [row['xmin'], row['ymin'], row['xmax'], row['ymax']])
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+            cv2.putText(frame, "Humain", (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
+
+        ret, buffer = cv2.imencode('.jpg', frame)
+        yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+
 
 @app.route('/video_feed')
 def video_feed():
-    cam_index = int(request.args.get('cam', 0))
-    return Response(generate_frames(cam_index), mimetype='multipart/x-mixed-replace; boundary=frame')
+    cam = int(request.args.get('cam', 0))
+    return Response(gen_frames(cam), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-@app.route('/capture_image/<int:cam_index>', methods=['GET'])
-def capture_image(cam_index):
-    cap = cv2.VideoCapture(cam_index)
-    if not cap.isOpened():
-        return jsonify({'error': 'Caméra non disponible'}), 400
 
-    ret, frame = cap.read()
-    cap.release()
+@app.route('/video_feed_wifi')
+def video_feed_wifi():
+    ssid = request.args.get("ssid")
+    url = wifi_camera_map.get(ssid)
+    return Response(gen_frames(url), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-    if not ret:
-        return jsonify({'error': 'Capture échouée'}), 500
 
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = f"{timestamp}.jpg"
-    path = os.path.join(CAPTURE_FOLDER, filename)
-    cv2.imwrite(path, frame)
+@app.route('/api/cameras', methods=['GET'])
+def get_local_cameras():
+    return jsonify(detect_local_cameras())
 
-    return jsonify({'message': 'Image capturée', 'filename': filename})
 
-@app.route('/reset_counter', methods=['POST'])
-def reset_counter():
-    global total_cattle_detected
-    with count_lock:
-        total_cattle_detected = 0
-    return jsonify({'message': 'Compteur réinitialisé'})
+@app.route('/api/cameras/wifi/detecter')
+def detecter_cameras_wifi():
+    return jsonify({"reseaux_detectes": scanner_wifi_windows()})
 
-@app.route('/get_cattle_count', methods=['GET'])
-def get_cattle_count():
-    with count_lock:
-        return jsonify({'total_detected': total_cattle_detected})
 
-@app.route('/get_temp_counts', methods=['GET'])
-def get_temp_counts():
-    with count_lock:
-        return jsonify({
-            'boeufs': total_cattle_detected,
-            'personnes': temporary_human_count
-        })
+@app.route('/api/cameras/wifi', methods=['GET'])
+def get_connected_wifi_cameras():
+    return jsonify(connected_wifi_cameras)
+
+def detect_local_cameras(max_index=3):
+    detected = []
+    for i in range(max_index):
+        cap = cv2.VideoCapture(i)
+        if cap is not None and cap.read()[0]:
+            detected.append(i)
+        cap.release()
+    return detected
+
+@app.route('/api/cameras/wifi/connecter', methods=['POST'])
+def connecter_wifi_camera():
+    ssid = request.json.get("ssid")
+    if not ssid or ssid not in wifi_camera_map:
+        return jsonify({"error": "SSID inconnu"}), 400
+    return jsonify({"message": "Connecté"}) if connecter_a_wifi(ssid) else jsonify({"error": "Échec"}), 500
+
 
 @app.route('/start_identification', methods=['POST'])
 def start_identification():
-    global identification_active
-    identification_active = True
-    return jsonify({'message': 'Identification démarrée'}), 200
-
-@app.route('/stop_identification', methods=['POST'])
-def stop_identification():
-    global identification_active
-    identification_active = False
-    return jsonify({'message': 'Identification arrêtée'}), 200
-
-@app.route('/api/boeufs', methods=['POST'])
-def ajouter_boeufs():
     data = request.get_json()
-    now = datetime.now()
-    boeuf = {
-        "date": now.date().isoformat(),
-        "heure": now.time().strftime("%H:%M:%S"),
-        "nombre_boeufs": data['nombre_boeufs']
-    }
-    boeuf_collection.insert_one(boeuf)
-    return jsonify({"message": "Comptage enregistré"}), 201
+    camera_id = data.get('camera_id')
+    camera_type = data.get('camera_type', 'local')
 
-@app.route('/api/boeufs/hebdomadaire', methods=['GET'])
-def get_stats_hebdo():
-    aujourd_hui = datetime.now().date()
-    stats = {jour: 0 for jour in jours_semaine}
-    une_semaine = aujourd_hui - timedelta(days=6)
+    if camera_type == "local":
+        source = local_cameras[int(camera_id)]
+    elif camera_type == "wifi":
+        source = wifi_camera_map.get(camera_id)
+        if not source:
+            return jsonify({'error': 'SSID inconnu'}), 400
+    else:
+        return jsonify({'error': 'Type non supporté'}), 400
 
-    documents = collection.find({
-        "date": {"$gte": une_semaine.strftime('%Y-%m-%d')} 
-    })
+    eventlet.spawn(run_detection_background, source, f"{camera_type}_{camera_id}")
+    return jsonify({'message': f"Identification lancée pour {camera_type}_{camera_id}"}), 200
 
-    for doc in documents:
-        date_str = doc.get("date")
-        nombre = doc.get("nombre_boeufs", 0)
-        if nombre > 0:
-            date_obj = datetime.strptime(date_str, "%Y-%m-%d")
-            jour = date_obj.strftime("%a")
-            mapping = {
-                'Mon': 'Lun', 'Tue': 'Mar', 'Wed': 'Mer', 'Thu': 'Jeu',
-                'Fri': 'Ven', 'Sat': 'Sam', 'Sun': 'Dim'
-            }
-            jour_fr = mapping.get(jour)
-            if jour_fr:
-                stats[jour_fr] += nombre
+@app.route('/api/humains/total', methods=['GET'])
+def total_humains():
+    total = humain_collection.count_documents({})
+    return jsonify({"total_humains": total})
 
-    return jsonify(stats)
-
-@app.route('/api/cameras', methods=['GET'])
-def detect_cameras():
-    max_index = 5  
-    disponibles = []
-    for i in range(max_index):
-        cap = cv2.VideoCapture(i)
-        if cap.isOpened():
-            disponibles.append(i)
-            cap.release()
-    return jsonify(disponibles)
-
-@app.route('/api/boeufs/stats', methods=['GET'])
-def statistiques_globales():
-    aujourd_hui = datetime.now().date()
-    une_semaine = aujourd_hui - timedelta(days=6)
-    stats = {jour: 0 for jour in jours_semaine}
-    total = 0
-    nombre_detections = 0
-    derniere_detection = None
-
-    documents = collection.find({"date": {"$gte": une_semaine.strftime('%Y-%m-%d')}})
-
-    for doc in documents:
-        date_str = doc.get("date")
-        nombre = doc.get("nombre_boeufs", 0)
-        if nombre > 0:
-            date_obj = datetime.strptime(date_str, "%Y-%m-%d")
-            jour = date_obj.strftime("%a")
-            mapping = {
-                'Mon': 'Lun', 'Tue': 'Mar', 'Wed': 'Mer', 'Thu': 'Jeu',
-                'Fri': 'Ven', 'Sat': 'Sam', 'Sun': 'Dim'
-            }
-            jour_fr = mapping.get(jour)
-            if jour_fr:
-                stats[jour_fr] += nombre
-                total += nombre
-                nombre_detections += 1
-                if not derniere_detection or date_obj > datetime.strptime(derniere_detection, "%Y-%m-%d"):
-                    derniere_detection = date_str
-
-    jour_max = max(stats, key=stats.get)
-    jour_min = min(stats, key=stats.get)
-
+@app.route('/get_temp_counts')
+def get_temp_counts():
     return jsonify({
-        "total_hebdo": total,
-        "moyenne_journaliere": round(total / 7, 2),
-        "jour_max": jour_max,
-        "valeur_max": stats[jour_max],
-        "jour_min": jour_min,
-        "valeur_min": stats[jour_min],
-        "derniere_detection": derniere_detection,
-        "nombre_detections": nombre_detections
+        "boeufs": temp_counts.get("boeufs", 0),
+        "humains": temp_counts.get("humains", 0)
     })
+
+
+@app.route('/api/humains/count', methods=['POST'])
+def compter_humains():
+    try:
+        cap = cv2.VideoCapture(0)
+        success, frame = cap.read()
+        cap.release()
+        if not success:
+            return jsonify({'error': 'Erreur de lecture'}), 500
+
+        results = model(frame)
+        humains = results.pandas().xyxy[0][results.pandas().xyxy[0]['name'] == 'person']
+        count = len(humains)
+
+        humain_collection.insert_one({
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "count": count
+        })
+
+        return jsonify({"count": count, "message": "Détection enregistrée"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/tickets', methods=['POST'])
+def create_ticket():
+    data = request.get_json()
+    db.tickets.insert_one({
+        'boucher': data.get('boucher'),
+        'nombre_boeufs': data.get('nombreBoeufs'),
+        'date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'created_by': 'Service Commercial'
+    })
+    return jsonify({'message': 'Ticket enregistré'}), 201
+
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    socketio.run(app, host="0.0.0.0", port=5000, debug=True)

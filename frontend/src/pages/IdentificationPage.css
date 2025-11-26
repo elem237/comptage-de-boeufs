@@ -1,45 +1,110 @@
-/* IdentificationPage.css */
-
 .identification-page {
-  background-color: #FFA;
+  background-color: #f4f6f8;
   min-height: 100vh;
-  color: black;
+  width: 100vw;
+  overflow-x: hidden;
+  position: relative;
 }
+
+.triangles-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.triangle {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-bottom: 20px solid rgba(255, 255, 255, 0.2);
+  animation: float 10s infinite ease-in-out;
+}
+
+@keyframes float {
+  0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+  50% { opacity: 0.7; }
+  100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+}
+
+.triangle:nth-child(1)  { left: 5%; animation-delay: 0s; }
+.triangle:nth-child(2)  { left: 10%; animation-delay: 2s; }
+.triangle:nth-child(3)  { left: 15%; animation-delay: 4s; }
+.triangle:nth-child(4)  { left: 20%; animation-delay: 1s; }
+.triangle:nth-child(5)  { left: 25%; animation-delay: 3s; }
+.triangle:nth-child(6)  { left: 30%; animation-delay: 2.5s; }
+.triangle:nth-child(7)  { left: 35%; animation-delay: 5s; }
+.triangle:nth-child(8)  { left: 40%; animation-delay: 3.5s; }
+.triangle:nth-child(9)  { left: 45%; animation-delay: 1.5s; }
+.triangle:nth-child(10) { left: 50%; animation-delay: 0.5s; }
 
 .content {
-  padding: 20px 40px;
-  font-family: sans-serif;
+  padding: 60px 40px 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
-h2 {
+.align-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-size: 2rem;
   margin-bottom: 20px;
+  color: #333;
 }
 
 .camera-select {
   margin: 20px 0;
-  font-size: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .camera-select select {
-  margin-left: 10px;
-  padding: 6px 12px;
-  font-size: 1rem;
+  padding: 10px 14px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .button-container {
+  display: flex;
+  justify-content: center;
   margin: 20px 0;
+  gap: 20px;
 }
 
-button {
-  background-color: #F00;
-  color: black;
-  font-weight: bold;
-  padding: 10px 20px;
+button.start-btn, button.stop-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 12px 24px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: transform 0.1s ease;
+  transition: transform 0.1s ease, background-color 0.3s;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.start-btn {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.stop-btn {
+  background-color: #F44336;
+  color: white;
 }
 
 button:hover {
@@ -48,21 +113,82 @@ button:hover {
 
 .video-section {
   margin-top: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
 }
 
-.hide {
-  display: none;
+.video-frame-container {
+  width: 100%;
+  max-width: 1000px;
+  border: 4px solid #0f0;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+  background-color: #fff;
+  text-align: center;
 }
 
-.show {
+.video-frame-container img {
+  width: 100%;
+  height: auto;
   display: block;
 }
+
+.error-message {
+  background-color: #ffe0e0;
+  border: 2px dashed red;
+  border-radius: 10px;
+  padding: 20px;
+  font-weight: bold;
+  color: #900;
+  max-width: 800px;
+  margin: 20px auto;
+}
+
+.error-message button {
+  background-color: #F00;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  margin-top: 10px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.error-message button:hover {
+  transform: scale(1.05);
+}
+
+.loader {
+  text-align: center;
+  padding: 20px;
+  color: #333;
+  font-weight: bold;
+}
+
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #F00;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 10px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .total-count {
   font-size: 24px;
   font-weight: bold;
   margin-top: 20px;
   color: black;
-}
-.count {
-  transition: all 0.5s ease-in-out;
+  text-align: center;
 }
